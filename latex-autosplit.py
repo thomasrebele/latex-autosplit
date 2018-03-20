@@ -2,7 +2,7 @@
 """latex-autosplit
 
 Usage:
-    latex-autosplit.py [options]  [--] <latex-file>
+    latex-autosplit.py [options] [--help] [--] <latex-file>
 
 Options:
     --tmp-dir <directory>           Directory for saving temporary files
@@ -11,6 +11,7 @@ Options:
     --compile                       Compile with command
     --split-env=<env-names>         Put \\begin{env}...\\end{env} into a separate file [default: frame]
                                     (begin and end need to be on a separate line)
+    --split-pre=<strings>           Cut the document in separate files. [default: \\chapter{]
 
 """
 
@@ -51,7 +52,7 @@ class Document:
 
         return Document(p.sub(h, self.content))
 
-    def split(self, env=[]):
+    def split_env(self, env=[]):
         """Splits a latex document in multiple files.
         Every frame environment will be written in its own file, including the preamble of this document."""
 
@@ -91,6 +92,68 @@ class Document:
 
         return result
 
+    def split_pre(self, pre=[]):
+        """Splits a latex document in multiple files.
+        Every frame environment will be written in its own file, including the preamble of this document."""
+
+        result = []
+        preamble = ""
+        part = ""
+        # modes:
+        # - header:     save to preamble, don't create parts
+        # - normal:     save to preamble, allow switching to part
+        # - env:NAME    within an environment with name NAME
+        mode = ["header"]
+        for line in self.content.splitlines(True):
+            if mode[-1] == "normal":
+                for i in pre:
+                    try:
+                        idx = line.index(i)
+                        if idx >= 0:
+                            print("here")
+                            print(part)
+                            if len(part.strip()) > 0:
+                                result += [Document(preamble + part + "\n\\end{document}\n")]
+                                part = ""
+                    except ValueError:
+                        pass
+
+            if "\\end{document}" in line:
+                break
+
+            if mode[-1] == "header":
+                preamble += line
+            else:
+                part += line
+
+            if "\\begin{document}" in line:
+                mode += ["normal"]
+
+        if len(part.strip()) > 0:
+            result += [Document(preamble + part + "\n\\end{document}\n")]
+
+        return result
+
+def autosplit(prefix="", args=[]):
+    tmp_dir = arguments["--tmp-dir"]
+    path = tmp_dir + "/" + prefix + str(i) + ".tex"
+
+    if str(Document.from_file(path)) != str(d):
+        d.write(path)
+        print("generated " + path)
+
+        if "--compile" in arguments:
+            cmd = "pdflatex -interaction nonstopmode"
+            if tmp_dir != None:
+                cmd += " -output-directory=" + tmp_dir
+            cmd += " '\\input{" + path + "}'"
+            try:
+                subprocess.run(cmd, shell=True, check=True)
+            except subprocess.CalledProcessError:
+                pass
+
+
+
 
 if __name__=='__main__':
     arguments = docopt(__doc__, version="latex-autosplit 0.01")
@@ -103,25 +166,13 @@ if __name__=='__main__':
     doc = doc.resolve_input()
     doc.write(tmp_dir + "/all.tex")
 
+    pre = arguments["--split-pre"].split(",")
+    for i, d in enumerate(doc.split_pre(pre=pre)):
+        autosplit(prefix="pre", args=arguments)
+
     env = arguments["--split-env"].split(",")
-    for i, d in enumerate(doc.split(env=env)):
-        path = tmp_dir + "/test" + str(i) + ".tex"
-
-        if str(Document.from_file(path)) != str(d):
-            d.write(path)
-            print("generated " + path)
-
-            if "--compile" in arguments:
-                cmd = "pdflatex -interaction nonstopmode"
-                if tmp_dir != None:
-                    cmd += " -output-directory=" + tmp_dir
-                cmd += " '\\input{" + path + "}'"
-                try:
-                    subprocess.run(cmd, shell=True, check=True)
-                except subprocess.CalledProcessError:
-                    pass
-
-
+    for i, d in enumerate(doc.split_env(env=env)):
+        autosplit(prefix="env", args=arguments)
 
 
 
