@@ -19,6 +19,7 @@ import subprocess
 from docopt import docopt
 import re
 import os
+import sys
 
 class Document:
 
@@ -98,6 +99,7 @@ class Document:
 
         result = []
         preamble = ""
+        postamble = ""
         part = ""
         # modes:
         # - header:     save to preamble, don't create parts
@@ -105,15 +107,20 @@ class Document:
         # - env:NAME    within an environment with name NAME
         mode = ["header"]
         for line in self.content.splitlines(True):
+            if "autosplit: start " in line:
+                mode = mode + [line[line.index("autosplit: start ") + len("autosplit: start "):-1]]
+                continue
+            if "autosplit: end " in line:
+                mode = mode[:-1]
+                continue
+
             if mode[-1] == "normal":
                 for i in pre:
                     try:
                         idx = line.index(i)
                         if idx >= 0:
-                            print("here")
-                            print(part)
                             if len(part.strip()) > 0:
-                                result += [Document(preamble + part + "\n\\end{document}\n")]
+                                result += [preamble + part]
                                 part = ""
                     except ValueError:
                         pass
@@ -123,23 +130,26 @@ class Document:
 
             if mode[-1] == "header":
                 preamble += line
-            else:
+            elif mode[-1] == "normal":
                 part += line
+            elif mode[-1] == "postamble":
+                postamble += line
 
             if "\\begin{document}" in line:
                 mode += ["normal"]
 
         if len(part.strip()) > 0:
-            result += [Document(preamble + part + "\n\\end{document}\n")]
+            result += [preamble + part]
 
-        return result
+        return [Document(tmp + postamble + "\n\\end{document}\n") for tmp in result]
 
-def autosplit(prefix="", args=[]):
+def autosplit(idx, doc, prefix="", args=[]):
+    print("treating part " + str(idx))
     tmp_dir = arguments["--tmp-dir"]
-    path = tmp_dir + "/" + prefix + str(i) + ".tex"
+    path = tmp_dir + "/" + prefix + str(idx) + ".tex"
 
-    if str(Document.from_file(path)) != str(d):
-        d.write(path)
+    if str(Document.from_file(path)) != str(doc):
+        doc.write(path)
         print("generated " + path)
 
         if "--compile" in arguments:
@@ -151,6 +161,7 @@ def autosplit(prefix="", args=[]):
                 subprocess.run(cmd, shell=True, check=True)
             except subprocess.CalledProcessError:
                 pass
+        return True
 
 
 
@@ -166,13 +177,18 @@ if __name__=='__main__':
     doc = doc.resolve_input()
     doc.write(tmp_dir + "/all.tex")
 
+    changed = False
     pre = arguments["--split-pre"].split(",")
     for i, d in enumerate(doc.split_pre(pre=pre)):
-        autosplit(prefix="pre", args=arguments)
+        changed = autosplit(idx=i, doc=d, prefix="pre", args=arguments) or changed
 
     env = arguments["--split-env"].split(",")
     for i, d in enumerate(doc.split_env(env=env)):
-        autosplit(prefix="env", args=arguments)
+        changed = autosplit(idx=i, doc=d, prefix="env", args=arguments) or changed
+
+    if changed:
+        sys.exit(1)
+
 
 
 
