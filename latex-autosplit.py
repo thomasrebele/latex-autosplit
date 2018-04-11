@@ -9,6 +9,7 @@ Options:
     -h, --help                      Show this screen
     -v, --version                   Show version
     --compile                       Compile with command
+    --nice-output                   Reformat output to make it more readable
     --split-env=<env-names>         Put \\begin{env}...\\end{env} into a separate file [default: frame]
                                     (begin and end need to be on a separate line)
     --split-pre=<strings>           Cut the document in separate files. [default: \\chapter{]
@@ -20,6 +21,8 @@ from docopt import docopt
 import re
 import os
 import sys
+
+import latex_nice_output
 
 class Document:
 
@@ -157,10 +160,16 @@ def autosplit(idx, doc, prefix="", args=[]):
             if tmp_dir != None:
                 cmd += " -output-directory=" + tmp_dir
             cmd += " '\\input{" + path + "}'"
-            try:
-                subprocess.run(cmd, shell=True, check=True)
-            except subprocess.CalledProcessError:
-                pass
+            result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            msg = result.stdout.decode('utf-8', 'backslashreplace') + "\n" + result.stderr.decode('utf-8', 'backslashreplace')
+
+            if "--nice-output" in arguments:
+                msg = latex_nice_output.format(msg)
+
+            print(msg.strip())
+
+            if result.returncode != 0:
+                print("Error while compiling " + path + "!\n")
         return True
 
 
