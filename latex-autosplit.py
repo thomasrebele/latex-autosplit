@@ -13,6 +13,7 @@ Options:
                                     (begin and end need to be on a separate line)
     --split-pre=<strings>           Cut the document in separate files. [default: \\chapter{]
     --nice-output                   Reformat output to make it more readable
+    --show-args                     Print arguments
 
 Nice output options:
     --no-box-warnings               Remove underful/overful box warnings
@@ -149,13 +150,11 @@ class Document:
         return [Document(tmp + postamble + "\n\\end{document}\n") for tmp in result]
 
 def autosplit(idx, doc, prefix="", args=[]):
-    print("treating part " + str(idx))
     tmp_dir = args["--tmp-dir"]
     path = tmp_dir + "/" + prefix + str(idx) + ".tex"
 
     if str(Document.from_file(path)) != str(doc):
         doc.write(path)
-        print("generated " + path)
 
         if args["--compile"]:
             cmd = "pdflatex -interaction nonstopmode"
@@ -168,10 +167,15 @@ def autosplit(idx, doc, prefix="", args=[]):
             if args["--nice-output"]:
                 msg = latex_nice_output.format(msg, args)
 
-            print(msg.strip())
+            msg = msg.strip()
+            if msg != "":
+                print(msg)
 
             if result.returncode != 0:
-                print("Error while compiling " + path + "!\n")
+                print("--- Error while compiling " + path + "!\n")
+                return True
+
+        print("--- Done compiling " + path)
         return True
 
 
@@ -179,7 +183,10 @@ def autosplit(idx, doc, prefix="", args=[]):
 
 if __name__=='__main__':
     arguments = docopt(__doc__, version="latex-autosplit 0.01")
-    print(arguments)
+    if arguments["--show-args"]:
+        print("*"*80)
+        print(arguments)
+        print("*"*80)
 
     input_file = arguments["<latex-file>"]
     tmp_dir = arguments["--tmp-dir"]
@@ -198,7 +205,12 @@ if __name__=='__main__':
         changed = autosplit(idx=i, doc=d, prefix="env", args=arguments) or changed
 
     if changed:
+        print("--- Done autosplit, some part(s) changed")
         sys.exit(1)
+    else:
+        print("--- Done autosplit, nothing changed")
+
+
 
 
 
