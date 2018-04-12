@@ -4,12 +4,20 @@ import re
 linewidth = 79
 
 # pattern, substitution
-cleanup_patterns = [
-        (re.compile("<[^<>]*.pfb>"),""),
-        (re.compile("{[^{}]*.enc}"),""),
-        (re.compile(r"\n?\([^()]*.(tex|sty|dfu|def|cfg|fd|mdf|aux|clo|bbl|out|mkii|cls)\s*\)\n?"),""),
-        (re.compile(r"\n\s*\n(\s*\n)*"), "\n\n"),
-        (re.compile(r"\n(\s*\n)*\s*\)"), "\n)")
+basic_patterns = [
+        (re.compile("<[^<>]*\.(pfb|png)>"),""), # remove files within <>
+        (re.compile("{[^{}]*\.(enc|map)}"),""), # remove files within {}
+        (re.compile(r"\n?\([^()]*\.(tex|sty|dfu|def|cfg|fd|mdf|aux|clo|bbl|out|mkii|cls)\s*(\[[0-9]+\]\s*)*\)\n?"),""), # remove files within ()
+        (re.compile(r"\s*\]"), "]"), # remove spaces in front of ]
+        (re.compile(r"\](\s*\[[0-9]+\])*\s*"), "]\n"), # remove unnecessary pages
+        (re.compile(r"\n\s*\n(\s*\n)*"), "\n\n"), # remove unnecessary newlines
+        (re.compile(r"\n(\s*\n)*\s*\)"), " )"), # remove newlines in front of )
+        (re.compile(r"\n(\s*\[\]\s*\n)+\s*"), "\n"), # remove [] lines
+        (re.compile(r"\n(\s*\n\s*)*\[([0-9]+)\]"), r" (page \g<2>)\n"), # reformat [...] to (page ...)
+    ]
+
+box_patterns = [
+        (re.compile(r"(Under|Over)full \\.box \([^()]*\) (has occurred while \\output is active|in paragraph at lines [0-9]+--[0-9]+)"), ""),
     ]
 
 messages = [
@@ -33,9 +41,9 @@ messages = [
         "Transcript written on[^\n]*"
     ]
 
-cleanup_patterns = [(re.compile(msg), "") for msg in messages] + cleanup_patterns
+message_patterns = [(re.compile(msg), "") for msg in messages]
 
-def format(msg):
+def format(msg, args):
     new_msg = ""
     prev = ""
     for line in msg.split("\n"):
@@ -46,6 +54,7 @@ def format(msg):
             prev = ""
     msg = new_msg
 
+    cleanup_patterns = message_patterns + ("--no-box-warnings" and box_patterns or []) + basic_patterns
     for regex, subs in cleanup_patterns:
         new_msg = ""
         while True:
@@ -53,6 +62,7 @@ def format(msg):
             if new_msg == msg: break
             msg = new_msg
         msg = new_msg
+
     return msg
 
 

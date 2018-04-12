@@ -5,15 +5,17 @@ Usage:
     latex-autosplit.py [options] [--help] [--] <latex-file>
 
 Options:
-    --tmp-dir <directory>           Directory for saving temporary files
+    --tmp-dir <directory>           Directory for saving temporary files [default: tmp/]
     -h, --help                      Show this screen
     -v, --version                   Show version
     --compile                       Compile with command
-    --nice-output                   Reformat output to make it more readable
     --split-env=<env-names>         Put \\begin{env}...\\end{env} into a separate file [default: frame]
                                     (begin and end need to be on a separate line)
     --split-pre=<strings>           Cut the document in separate files. [default: \\chapter{]
+    --nice-output                   Reformat output to make it more readable
 
+Nice output options:
+    --no-box-warnings               Remove underful/overful box warnings
 """
 
 import subprocess
@@ -148,14 +150,14 @@ class Document:
 
 def autosplit(idx, doc, prefix="", args=[]):
     print("treating part " + str(idx))
-    tmp_dir = arguments["--tmp-dir"]
+    tmp_dir = args["--tmp-dir"]
     path = tmp_dir + "/" + prefix + str(idx) + ".tex"
 
     if str(Document.from_file(path)) != str(doc):
         doc.write(path)
         print("generated " + path)
 
-        if "--compile" in arguments:
+        if args["--compile"]:
             cmd = "pdflatex -interaction nonstopmode"
             if tmp_dir != None:
                 cmd += " -output-directory=" + tmp_dir
@@ -163,8 +165,8 @@ def autosplit(idx, doc, prefix="", args=[]):
             result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             msg = result.stdout.decode('utf-8', 'backslashreplace') + "\n" + result.stderr.decode('utf-8', 'backslashreplace')
 
-            if "--nice-output" in arguments:
-                msg = latex_nice_output.format(msg)
+            if args["--nice-output"]:
+                msg = latex_nice_output.format(msg, args)
 
             print(msg.strip())
 
