@@ -13,6 +13,7 @@ Options:
                                     (begin and end need to be on a separate line)
     --split-pre=<strings>           Cut the document in separate files. [default: \\chapter{]
     --nice-output                   Reformat output to make it more readable
+    --latex-cmd=<string>            Command for compiling *.tex files [default: pdflatex -interaction nonstopmode]
     --show-args                     Print arguments
 
 Nice output options:
@@ -55,6 +56,12 @@ class Document:
         p = re.compile(r"\\input\{(.*)\}")
         def h(match):
             input_file = match.group(1)
+            # check comment
+            pos = match.start()
+            line_start = max(0,self.content[:pos].rindex("\n"))
+            if "%" in self.content[line_start:pos]:
+                return input_file
+
             return str(Document.from_file(input_file).resolve_input())
 
         return Document(p.sub(h, self.content))
@@ -157,7 +164,7 @@ def autosplit(idx, doc, prefix="", args=[]):
         doc.write(path)
 
         if args["--compile"]:
-            cmd = "pdflatex -interaction nonstopmode"
+            cmd = args["--latex-cmd"] # "pdflatex -interaction nonstopmode"
             if tmp_dir != None:
                 cmd += " -output-directory=" + tmp_dir
             cmd += " '\\input{" + path + "}'"
@@ -206,9 +213,9 @@ if __name__=='__main__':
 
     if changed:
         print("--- Done autosplit, some part(s) changed")
-        sys.exit(1)
     else:
         print("--- Done autosplit, nothing changed")
+        sys.exit(1)
 
 
 
