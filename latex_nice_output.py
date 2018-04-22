@@ -17,7 +17,9 @@ basic_patterns = [
         (re.compile(r"(\n\s*\[\]\s*)+"), "\n"), # remove [] lines
         (re.compile(r"\n(\s*\n\s*)*(\[[0-9]+\])"), r" \g<2>"), # reformat [...] to (page ...)
         (re.compile(r"Chapter [0-9]+.\s*\[[0-9]+\]"), ""),
-        (re.compile(r"Appendix [A-Z]+.\s*\[[0-9]+\]"), "")
+        (re.compile(r"Appendix [A-Z]+.\s*\[[0-9]+\]"), ""),
+        # minted
+        (re.compile(r"\n?\([^()]*\.(w18|pygstyle|pygtex)\s*(\[[0-9]+\]\s*)*\)\n?"),""), # remove files within ()
     ]
 
 box_patterns = [
@@ -45,7 +47,9 @@ messages = [
         "Transcript written on[^\n]*",
         r"Output written on [^(]*\([^)]*\)\.",
         r"LaTeX Warning: Empty `thebibliography' environment on input line [0-9]+\.",
-        r"LaTeX Warning: There were undefined references\."
+        r"LaTeX Warning: There were undefined references\.",
+        r"Style option: .fancyvrb. v2.7a, with DG/SPQR fixes, and firstline=lastline fix <2008/02/07> .tvz.", # minted
+        r"/usr/bin/pygmentize",
     ]
 
 message_patterns = [(re.compile(msg), "") for msg in messages]
