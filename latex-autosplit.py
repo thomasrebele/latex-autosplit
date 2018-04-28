@@ -59,6 +59,7 @@ class Document:
             # check comment
             pos = match.start()
             line_start = max(0,self.content[:pos].rindex("\n"))
+
             if "%" in self.content[line_start:pos]:
                 return input_file
 
@@ -120,12 +121,16 @@ class Document:
         # - env:NAME    within an environment with name NAME
         mode = ["header"]
         for line in self.content.splitlines(True):
+
             if "autosplit: start " in line:
                 mode = mode + [line[line.index("autosplit: start ") + len("autosplit: start "):-1]]
                 continue
             if "autosplit: end " in line:
                 mode = mode[:-1]
                 continue
+
+            # ignore comments
+            if line.strip().startswith("%"): continue
 
             if mode[-1] == "normal":
                 for i in pre:
