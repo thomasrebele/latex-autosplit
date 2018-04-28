@@ -15,9 +15,10 @@ basic_patterns = [
         (re.compile(r"\n\s*\n(\s*\n)*"), "\n\n"), # remove unnecessary newlines
         (re.compile(r"\n(\s*\n)*\s*\)"), " )"), # remove newlines in front of )
         (re.compile(r"(\n\s*\[\]\s*)+"), "\n"), # remove [] lines
-        (re.compile(r"\n(\s*\n\s*)*(\[[0-9]+\])"), r" \g<2>"), # reformat [...] to (page ...)
+        (re.compile(r"\n\s*(\n\s*)*(\[[0-9]+\])"), r" \g<2>"), # reformat [...] to (page ...)
         (re.compile(r"Chapter [0-9]+.\s*\[[0-9]+\]"), ""),
         (re.compile(r"Appendix [A-Z]+.\s*\[[0-9]+\]"), ""),
+        (re.compile(r"\n\n+(LaTeX Warning: Citation)"), r"\n\g<1>"), # remove empty line in front of undefined reference warning
         # minted
         (re.compile(r"\n?\([^()]*\.(w18|pygstyle|pygtex)\s*(\[[0-9]+\]\s*)*\)\n?"),""), # remove files within ()
     ]
