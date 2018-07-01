@@ -7,9 +7,9 @@ linewidth = 79
 
 # pattern, substitution
 basic_patterns = [
-        (re.compile("<[^<>]*\.(pfb|png|pdf)>"),""), # remove files within <>
+        (re.compile("<[^<>]*\.(pfb|png|pdf|jpe?g)( \([^)]*\))?>"),""), # remove files within <>
         (re.compile("{[^{}]*\.(enc|map)}"),""), # remove files within {}
-        (re.compile(r"\n?\([^()]*\.(tex|sty|dfu|def|cfg|fd|mdf|aux|clo|bbl|out|mkii|cls|toc)\s*(\[[0-9]+\]\s*)*\)\n?"),""), # remove files within ()
+        (re.compile(r"\n?\([^()]*\.(tex|sty|dfu|def|cfg|fd|mdf|aux|clo|bbl|out|mkii|cls|toc|ldf|dict|nav|bbx|cbx|lbx|vrb)\s*(\[[0-9]+\]\s*)*\)\n?"),""), # remove files within ()
         (re.compile(r"\s*\]"), "]"), # remove spaces in front of ]
         (re.compile(r"\](\s*\[[0-9]+\])*\s*"), "]\n"), # remove unnecessary pages
         (re.compile(r"\n\s*\n(\s*\n)*"), "\n\n"), # remove unnecessary newlines
@@ -40,7 +40,7 @@ messages = [
         re.escape("*geometry* detected driver: pdftex"),
         "ABD: EveryShipout initializing macros",
         "\[Loading MPS to PDF converter \(version .*\).\]",
-        "Document Class: report .{10,20} Standard LaTeX document class",
+        "Document Class: .{10,40} Standard LaTeX document class",
         "This is pdfTeX, Version [^\n]{10,250}\n",
         "entering extended mode",
         "LaTeX2e [^\n]{10,50}\n",
